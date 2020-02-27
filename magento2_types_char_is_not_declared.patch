@@ -1,0 +1,163 @@
+From 49ff38a9c319c9602781b89345a209f3a86e033c Mon Sep 17 00:00:00 2001
+From: Ward Cappelle <ward.cappelle@studioemma.com>
+Date: Sun, 21 Apr 2019 09:45:58 +0200
+Subject: [PATCH 1/2] Add support for char element to dto factory
+
+To avoid the notice "Types char is not declared" (which breaks setup:upgrade)
+when using the very type anywhere in the MySQL database, mapping for this specific type
+is added to the DI as well.
+---
+ app/etc/di.xml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/app/etc/di.xml b/app/etc/di.xml
+index 476285878650..4760550ba10e 100755
+--- a/app/etc/di.xml
++++ b/app/etc/di.xml
+@@ -1435,6 +1435,7 @@
+                 <item name="mediumtext" xsi:type="object">\Magento\Framework\Setup\Declaration\Schema\Dto\Factories\MediumText</item>
+                 <item name="text" xsi:type="object">\Magento\Framework\Setup\Declaration\Schema\Dto\Factories\Text</item>
+                 <item name="varchar" xsi:type="object">\Magento\Framework\Setup\Declaration\Schema\Dto\Factories\StringBinary</item>
++                <item name="char" xsi:type="object">\Magento\Framework\Setup\Declaration\Schema\Dto\Factories\StringBinary</item>
+                 <item name="varbinary" xsi:type="object">\Magento\Framework\Setup\Declaration\Schema\Dto\Factories\StringBinary</item>
+                 <item name="blob" xsi:type="object">\Magento\Framework\Setup\Declaration\Schema\Dto\Factories\Blob</item>
+                 <item name="mediumblob" xsi:type="object">\Magento\Framework\Setup\Declaration\Schema\Dto\Factories\MediumBlob</item>
+
+From 58dde946843684dc0eece859f3943b4c897e7ab8 Mon Sep 17 00:00:00 2001
+From: Nazar Klovanych <nazarn96@gmail.com>
+Date: Tue, 11 Feb 2020 13:46:59 +0200
+Subject: [PATCH 2/2] Add support for db_schema.xml char type column
+
+---
+ app/etc/di.xml                                |  1 +
+ .../Schema/Dto/Columns/StringBinary.php       |  7 ++--
+ .../Setup/Declaration/Schema/etc/schema.xsd   |  1 +
+ .../Schema/etc/types/texts/char.xsd           | 33 +++++++++++++++++++
+ .../CharDefinition.php                        | 29 ++++++++++++++++
+ 5 files changed, 67 insertions(+), 4 deletions(-)
+ create mode 100644 vendor/magento/framework/Setup/Declaration/Schema/etc/types/texts/char.xsd
+ create mode 100644 vendor/magento/framework/Setup/SchemaListenerDefinition/CharDefinition.php
+
+diff --git a/app/etc/di.xml b/app/etc/di.xml
+index dcd6a4253c98..177c6b67fb50 100644
+--- a/app/etc/di.xml
++++ b/app/etc/di.xml
+@@ -1592,6 +1592,7 @@
+                 <item name="longblog" xsi:type="object">Magento\Framework\Setup\SchemaListenerDefinition\TextBlobDefinition</item>
+                 <item name="varbinary" xsi:type="object">Magento\Framework\Setup\SchemaListenerDefinition\TextBlobDefinition</item>
+                 <item name="varchar" xsi:type="object">Magento\Framework\Setup\SchemaListenerDefinition\TextBlobDefinition</item>
++                <item name="char" xsi:type="object">Magento\Framework\Setup\SchemaListenerDefinition\CharDefinition</item>
+                 <item name="timestamp" xsi:type="object">Magento\Framework\Setup\SchemaListenerDefinition\TimestampDefinition</item>
+                 <item name="datetime" xsi:type="object">Magento\Framework\Setup\SchemaListenerDefinition\TimestampDefinition</item>
+                 <item name="date" xsi:type="object">Magento\Framework\Setup\SchemaListenerDefinition\DateDefinition</item>
+diff --git a/vendor/magento/framework/Setup/Declaration/Schema/Dto/Columns/StringBinary.php b/vendor/magento/framework/Setup/Declaration/Schema/Dto/Columns/StringBinary.php
+index 58e6df114630..4de198ae631f 100644
+--- a/vendor/magento/framework/Setup/Declaration/Schema/Dto/Columns/StringBinary.php
++++ b/vendor/magento/framework/Setup/Declaration/Schema/Dto/Columns/StringBinary.php
+@@ -11,7 +11,7 @@
+ 
+ /**
+  * String or Binary column.
+- * Declared in SQL, like VARCHAR(L), BINARY(L)
++ * Declared in SQL, like CHAR(L), VARCHAR(L), BINARY(L)
+  * where L - length.
+  */
+ class StringBinary extends Column implements
+@@ -73,10 +73,9 @@ public function isNullable()
+     }
+ 
+     /**
+-     * Return default value.
+-     * Note: default value should be string.
++     * Return default value, Note: default value should be string.
+      *
+-     * @return string | null
++     * @return string|null
+      */
+     public function getDefault()
+     {
+diff --git a/vendor/magento/framework/Setup/Declaration/Schema/etc/schema.xsd b/vendor/magento/framework/Setup/Declaration/Schema/etc/schema.xsd
+index bb9136d8a9ae..2fbab1816192 100644
+--- a/vendor/magento/framework/Setup/Declaration/Schema/etc/schema.xsd
++++ b/vendor/magento/framework/Setup/Declaration/Schema/etc/schema.xsd
+@@ -20,6 +20,7 @@
+     <xs:include schemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/types/texts/longtext.xsd" />
+     <xs:include schemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/types/texts/mediumtext.xsd" />
+     <xs:include schemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/types/texts/varchar.xsd" />
++    <xs:include schemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/types/texts/char.xsd" />
+     <xs:include schemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/types/binaries/blob.xsd" />
+     <xs:include schemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/types/binaries/mediumblob.xsd" />
+diff --git a/vendor/magento/framework/Setup/Declaration/Schema/etc/types/texts/char.xsd b/vendor/magento/framework/Setup/Declaration/Schema/etc/types/texts/char.xsd
+new file mode 100644
+index 000000000000..27ec7852b3b8
+--- /dev/null
++++ b/vendor/magento/framework/Setup/Declaration/Schema/etc/types/texts/char.xsd
+@@ -0,0 +1,33 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!--
++/**
++ * Copyright © Magento, Inc. All rights reserved.
++ * See COPYING.txt for license details.
++ */
++-->
++<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
++    <xs:include schemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/types/column.xsd"/>
++
++    <xs:complexType name="char">
++        <xs:complexContent>
++            <xs:extension base="abstractColumnType">
++                <xs:annotation>
++                    <xs:documentation>
++                        Here plain text can be persisted without trailing spaces. Length of this field can't be more than 255 characters
++                        When CHAR values are retrieved, trailing spaces are removed unless the PAD_CHAR_TO_FULL_LENGTH SQL mode is enabled.
++                    </xs:documentation>
++                </xs:annotation>
++
++                <xs:attribute name="length">
++                    <xs:simpleType>
++                        <xs:restriction base="xs:integer">
++                            <xs:maxInclusive value="255"/>
++                        </xs:restriction>
++                    </xs:simpleType>
++                </xs:attribute>
++                <xs:attribute name="default" type="xs:string" />
++                <xs:attribute name="nullable" type="xs:boolean" />
++            </xs:extension>
++        </xs:complexContent>
++    </xs:complexType>
++</xs:schema>
+diff --git a/vendor/magento/framework/Setup/SchemaListenerDefinition/CharDefinition.php b/vendor/magento/framework/Setup/SchemaListenerDefinition/CharDefinition.php
+new file mode 100644
+index 000000000000..058ca6956487
+--- /dev/null
++++ b/vendor/magento/framework/Setup/SchemaListenerDefinition/CharDefinition.php
+@@ -0,0 +1,29 @@
++<?php
++/**
++ * Copyright © Magento, Inc. All rights reserved.
++ * See COPYING.txt for license details.
++ */
++
++namespace Magento\Framework\Setup\SchemaListenerDefinition;
++
++/**
++ * Char type definition.
++ */
++class CharDefinition implements DefinitionConverterInterface
++{
++    private const DEFAULT_TEXT_LENGTH = 255;
++
++    /**
++     * @inheritdoc
++     */
++    public function convertToDefinition(array $definition)
++    {
++        return [
++            'xsi:type' => $definition['type'],
++            'name' => $definition['name'],
++            'length' => $definition['length'] ?? self::DEFAULT_TEXT_LENGTH,
++            'default' => isset($definition['default']) ? (bool) $definition['default'] : null,
++            'nullable' => $definition['nullable'] ?? true,
++        ];
++    }
++}
