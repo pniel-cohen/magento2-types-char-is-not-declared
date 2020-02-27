@@ -1,2 +1,3 @@
-# magento2-types-char-is-not-declares
-Magento 2 Types char is not declared
+# magento2-types-char-is-not-declared
+Patch for Magento 2 issie Types char is not declared.
+Patch applied for Magetno 2.3.4.
